@@ -21,24 +21,38 @@ import java.util.concurrent.Executors;
  */
 public class DownloadImage {
 
-    public Context context;
     public boolean isCancelled = false;
-    public final String savePath = "/sdcard/DownloadImage";
-    public int CPUCount = 2;
+    public static final String savePath = "/sdcard/DownloadImage";
 
-    public DownloadImage(Context con){
-        this.context = con;
+    public DownloadImage(){
         File dir = new File(savePath);
         if (!dir.exists()){
             dir.mkdir();
         }
     }
 
-    public boolean download(String path, LoadingProgressListener listener){
-        String imagePath = savePath + "/" + path;
+    public static String getNameByUrl(String url){
+        String name = null;
+        int length = url.lastIndexOf('/');
+        if (url.length()-1-length > 20){
+            name = url.substring(url.length() - 20);
+        } else {
+            name = url.substring(length+1);
+        }
+        return name+".jpg";
+    }
+
+    public void download(String path, LoadingListener listener){
+        System.out.println("downImage url = "+path);
+        String imagePath = savePath + "/" + getNameByUrl(path);
+        System.out.println("save path = "+savePath);
         File image = new File(imagePath);
         if (image.exists()){
-            return true;
+            if (listener != null){
+                listener.handleProgress(100);
+                listener.onFinished(getNameByUrl(path));
+            }
+            return ;
         }
 
         URL url = null;
@@ -53,31 +67,40 @@ public class DownloadImage {
         try {
             conn = (HttpURLConnection) url.openConnection();
             conn.setConnectTimeout(3000);
-            conn.setRequestMethod("GET");
+            conn.setRequestMethod("POST");
             conn.connect();
             if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
                 int length = conn.getContentLength();
                 is = conn.getInputStream();
-                output = new FileOutputStream(savePath);
+                output = new FileOutputStream(imagePath);
                 byte data[] = new byte[4096];
                 long total = 0;
                 int count = 0;
-                while ((count = is.read(data)) != -1){
+                System.out.println("downImage length = "+length);
+                while ((count = is.read(data)) > 0){
                     if (!isCancelled){
                         total += count;
                         if (listener != null){
                             if (length > 0){
-                                listener.handleProgress((int) (100 * total / length));
+                                int progress = (int) (100 * total / length);
+                                System.out.println("downImage progress = " + progress);
+                                listener.handleProgress(progress);
                             }
                         }
 
                         output.write(data, 0, count);
                     } else {
-                        return false;
+                        if (listener != null)
+                            listener.onCancelled();
+                        return ;
                     }
                 }
+                output.flush();
+                if (listener != null)
+                    listener.onFinished(getNameByUrl(path));
             } else {
-                return false;
+
+                return ;
             }
         } catch (ProtocolException e) {
             e.printStackTrace();
@@ -94,8 +117,12 @@ public class DownloadImage {
             if (conn != null)
                 conn.disconnect();
         }
-        return true;
+        return ;
 
+    }
+
+    public void cancell(){
+        isCancelled = true;
     }
 
     public boolean deleteImage(String path){
@@ -107,9 +134,13 @@ public class DownloadImage {
         }
     }
 
-    public interface LoadingProgressListener{
+    public interface LoadingListener{
         void handleProgress(int progress);
+        void onFinished(String name);
+        void onCancelled();
+        void onFailed(String errorMsg);
     }
 
-    ExecutorService pool = Executors.newFixedThreadPool(CPUCount);
+
+
 }

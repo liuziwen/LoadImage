@@ -14,9 +14,14 @@
         android:layout_height="wrap_content"
         android:text="Hello World!" />
 
-    <GridView
-        android:id="@+id/gridView"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:numColumns="3"/>
+    <com.example.liuziwen587.loadimage.ProgressImageView
+        android:id="@+id/progress"
+        android:layout_width="50dp"
+        android:layout_height="50dp" />
+
+    <!--<GridView-->
+        <!--android:id="@+id/gridView"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:numColumns="3"/>-->
 </RelativeLayout>
