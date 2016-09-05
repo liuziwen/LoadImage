@@ -8,8 +8,10 @@ import android.graphics.BitmapFactory;
  */
 public class BitmapUtil {
 
-    public static Bitmap getScaledBitmapFromPath(String path, int length){
-        System.out.println("decode bitmap path = "+path);
+    public static String LOG = "BitmapUtil: ";
+
+    public static Bitmap getScaledBitmapFromPath(String path, int length) {
+        MyLog.d(LOG + "decode bitmap path = " + path);
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;
 
@@ -17,17 +19,17 @@ public class BitmapUtil {
         int height = options.outHeight;
         int width = options.outWidth;
 
-        System.out.println("decode bitmap before length = "+width);
+        MyLog.d(LOG + path + " decode bitmap before length = " + width);
 
         int l = Math.min(height, width);
-        if (l > length){
+        if (l > length) {
             options.inSampleSize = l / length;
         }
         options.inJustDecodeBounds = false;
         bitmap = BitmapFactory.decodeFile(path, options);
         bitmap = ImageCrop(bitmap);
 
-        System.out.println("decode bitmap after length = "+bitmap.getWidth());
+        MyLog.d(LOG + path + " decode bitmap after length = " + bitmap.getWidth());
 
         return bitmap;
     }

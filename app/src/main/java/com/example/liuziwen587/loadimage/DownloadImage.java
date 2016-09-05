@@ -1,8 +1,6 @@
 package com.example.liuziwen587.loadimage;
 
-import android.content.Context;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.os.Environment;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -13,16 +11,16 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 /**
  * Created by LIUZIWEN587 on 2016-07-27.
  */
 public class DownloadImage {
 
+    public String LOG = "DownloadImage : ";
+
     public boolean isCancelled = false;
-    public static final String savePath = "/sdcard/DownloadImage";
+    public static final String savePath = Environment.getExternalStorageDirectory().getPath()+"DownloadImage";
 
     public DownloadImage(){
         File dir = new File(savePath);
@@ -34,18 +32,18 @@ public class DownloadImage {
     public static String getNameByUrl(String url){
         String name = null;
         int length = url.lastIndexOf('/');
-        if (url.length()-1-length > 20){
-            name = url.substring(url.length() - 20);
+        if (url.length()-1-length > 25){
+            name = url.substring(url.length() - 25);
         } else {
             name = url.substring(length+1);
         }
-        return name+".jpg";
+        return name;
     }
 
     public void download(String path, LoadingListener listener){
-        System.out.println("downImage url = "+path);
+        MyLog.d(LOG + "url = " + path);
         String imagePath = savePath + "/" + getNameByUrl(path);
-        System.out.println("save path = "+savePath);
+        MyLog.d(LOG + "save path = "+savePath);
         File image = new File(imagePath);
         if (image.exists()){
             if (listener != null){
@@ -76,14 +74,14 @@ public class DownloadImage {
                 byte data[] = new byte[4096];
                 long total = 0;
                 int count = 0;
-                System.out.println("downImage length = "+length);
+                MyLog.d(LOG + "downImage length = "+length);
                 while ((count = is.read(data)) > 0){
                     if (!isCancelled){
                         total += count;
                         if (listener != null){
                             if (length > 0){
                                 int progress = (int) (100 * total / length);
-                                System.out.println("downImage progress = " + progress);
+                                MyLog.d(LOG + "downImage progress = " + progress);
                                 listener.handleProgress(progress);
                             }
                         }

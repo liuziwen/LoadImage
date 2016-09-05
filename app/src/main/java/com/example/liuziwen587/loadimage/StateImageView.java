@@ -6,18 +6,16 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Rect;
 import android.graphics.RectF;
 import android.util.AttributeSet;
-import android.view.View;
-import android.widget.ImageView;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 
 /**
- * Created by liuziwen on 16/8/1.
+ * Created by liuziwen on 16/9/5.
  */
-public class ProgressImageView extends ImageView {
+public class StateImageView extends SurfaceView implements SurfaceHolder.Callback{
 
     public final static int STATE_INIT = 0;
     public final static int STATE_DOWNING = 1;
@@ -25,6 +23,8 @@ public class ProgressImageView extends ImageView {
     public final static int STATE_CANCELL = 3;
     public final static int STATE_ERROR = 4;
     public final static int STATE_LOADING = 5;
+
+    public boolean isRun ;
 
     public int state = 1;
     public int progress = 0;
@@ -40,17 +40,20 @@ public class ProgressImageView extends ImageView {
 
     int fps = 60;
 
-    public ProgressImageView(Context context) {
+    private Thread drawUIThread;
+    private SurfaceHolder surfaceHolder;
+
+    public StateImageView(Context context) {
         super(context);
         init();
     }
 
-    public ProgressImageView(Context context, AttributeSet attrs) {
+    public StateImageView(Context context, AttributeSet attrs) {
         super(context, attrs);
         init();
     }
 
-    public ProgressImageView(Context context, AttributeSet attrs, int defStyleAttr) {
+    public StateImageView(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
         init();
     }
@@ -62,6 +65,11 @@ public class ProgressImageView extends ImageView {
         p2 = new Paint();
         p2.setAntiAlias(true);
         p2.setColor(Color.parseColor("#FFffffff"));
+
+        surfaceHolder = getHolder();
+        surfaceHolder.addCallback(this);
+        drawUIThread = new DrawUIThread(getHolder());
+
     }
 
     public void setBitmap(Bitmap bitmap) {
@@ -76,7 +84,6 @@ public class ProgressImageView extends ImageView {
         this.state = state;
         invalidate();
     }
-
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -101,20 +108,6 @@ public class ProgressImageView extends ImageView {
         length = getWidth() / fps;
         width = getWidth();
         height = getHeight();
-    }
-
-    public void onDraw(Canvas canvas) {
-        super.onDraw(canvas);
-
-        switch (state){
-            case STATE_INIT: drawInitAnim(canvas);break;
-            case STATE_DOWNING: drawDowningAnim(canvas);break;
-            case STATE_LOADING: drawLoadingAnim(canvas);break;
-            case STATE_FINISH:setImageBitmap(bitmap);break;
-            case STATE_ERROR: drawErrorState(canvas);break;
-            case STATE_CANCELL:drawCancellState(canvas);break;
-            default:break;
-        }
     }
 
     public void setProgress(int progress) {
@@ -157,14 +150,6 @@ public class ProgressImageView extends ImageView {
             }
             canvas.drawCircle(getWidth() / 2, getHeight() / 2, r1, p1);
             canvas.drawCircle(getWidth() / 2, getHeight() / 2, r2, p2);
-
-            try {
-                Thread.sleep(1000 / fps);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            invalidate();
         }
     }
 
@@ -202,11 +187,7 @@ public class ProgressImageView extends ImageView {
             path2.lineTo(width/4+i*dx, height/8*7 - i*dy);
             canvas.drawPath(path1, p2);
             canvas.drawPath(path2, p2);
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+
             i++;
         } else {
             if (angle < 180){
@@ -226,18 +207,12 @@ public class ProgressImageView extends ImageView {
                 canvas.drawPath(path1, p1);
                 canvas.drawPath(path2, p2);
 
-                try {
-                    Thread.sleep(1000/fps);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
             } else {
                 angle = 0;
                 i = 0;
             }
         }
 
-        invalidate();
     }
 
     public void drawCancellState(Canvas canvas){
@@ -248,5 +223,82 @@ public class ProgressImageView extends ImageView {
 
     }
 
+    public void setImageBitmap(Bitmap b){
 
+    }
+
+
+
+
+    @Override
+    public void surfaceCreated(SurfaceHolder holder) {
+        MyLog.d("stateImageView: " + "surfaceCreated");
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+        MyLog.d("stateImageView: " + "surfaceChanged");
+        isRun = true;
+        drawUIThread.start();
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder holder) {
+        MyLog.d("stateImageView: " + "surfaceDestroyed");
+        isRun = false;
+    }
+
+    class DrawUIThread extends Thread{
+
+        private SurfaceHolder holder;
+
+        public  DrawUIThread(SurfaceHolder holder) {
+            this.holder =holder;
+            isRun = true;
+        }
+
+        @Override
+        public void run() {
+            int count = 0;
+            while(isRun) {
+                Canvas canvas = null;
+                try {
+                    synchronized (holder) {
+                        canvas = holder.lockCanvas();//锁定画布，一般在锁定后就可以通过其返回的画布对象Canvas，在其上面画图等操作了。
+                        canvas.drawColor(Color.WHITE);
+                        switch (state){
+                            case STATE_INIT: drawInitAnim(canvas);break;
+                            case STATE_DOWNING: drawDowningAnim(canvas);break;
+                            case STATE_LOADING: drawLoadingAnim(canvas);break;
+                            case STATE_FINISH:setImageBitmap(bitmap);break;
+                            case STATE_ERROR: drawErrorState(canvas);break;
+                            case STATE_CANCELL:drawCancellState(canvas);break;
+                            default:break;
+                        }
+
+                        Thread.sleep(1000/fps);//睡眠时间为1秒
+                    }
+                }
+                catch (Exception e) {
+                    // TODO: handle exception
+                    e.printStackTrace();
+                }
+                finally {
+                    if(canvas!= null) {
+                        holder.unlockCanvasAndPost(canvas);//结束锁定画图，并提交改变。
+
+                    }
+                    switch (state){
+                        case STATE_INIT: isRun = true;break;
+                        case STATE_DOWNING: isRun = true;break;
+                        case STATE_LOADING: isRun = true;break;
+                        case STATE_FINISH:isRun = false;break;
+                        case STATE_ERROR: isRun = false;break;
+                        case STATE_CANCELL:isRun = false;break;
+                        default:break;
+                    }
+                }
+            }
+        }
+    }
 }

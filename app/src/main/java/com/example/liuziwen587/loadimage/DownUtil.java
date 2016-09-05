@@ -1,25 +1,17 @@
 package com.example.liuziwen587.loadimage;
 
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
-import android.widget.ImageView;
 
 import java.io.File;
-import java.io.FileFilter;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.regex.Pattern;
 
 /**
  * Created by liuziwen on 16/8/1.
@@ -76,12 +68,14 @@ public class DownUtil {
     }
 
 
-    public void getBitmap(final String url, final ProgressImageView imageView){
+    public void setBitmapForView(final String url, final ProgressImageView imageView, final int width){
+
         final Bitmap[] bitmap = {null};
-        if ((bitmap[0] = ImageLruCache.getInstance().get(url)) == null){
+        if ((bitmap[0] = ImageLruCache.getInstance().get(DownloadImage.getNameByUrl(url))) == null){
             final File f = new File(DownloadImage.savePath + "/" + DownloadImage.getNameByUrl(url));
             if (f.exists()){
-                bitmap[0] = BitmapUtil.getScaledBitmapFromPath(f.getAbsolutePath(), (int)MainActivity.dpToPx(50));
+                imageView.setState(ProgressImageView.STATE_LOADING);
+                bitmap[0] = BitmapUtil.getScaledBitmapFromPath(f.getAbsolutePath(), width);
                 ImageLruCache.getInstance().put(DownloadImage.getNameByUrl(url), bitmap[0]);
                 imageView.setBitmap(bitmap[0]);
             } else {
@@ -91,7 +85,9 @@ public class DownUtil {
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                imageView.setProgress(progress);
+                                if (imageView.getTag().equals(url)){
+                                    imageView.setProgress(progress);
+                                }
                             }
                         });
 
@@ -102,9 +98,12 @@ public class DownUtil {
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                bitmap[0] = BitmapUtil.getScaledBitmapFromPath(f.getAbsolutePath(), (int)MainActivity.dpToPx(50));
+                                imageView.setState(ProgressImageView.STATE_LOADING);
+                                bitmap[0] = BitmapUtil.getScaledBitmapFromPath(f.getAbsolutePath(), width);
                                 ImageLruCache.getInstance().put(DownloadImage.getNameByUrl(url), bitmap[0]);
-                                imageView.setBitmap(bitmap[0]);
+                                if (imageView.getTag().equals(url)){
+                                    imageView.setBitmap(bitmap[0]);
+                                }
                             }
                         });
 
@@ -122,6 +121,7 @@ public class DownUtil {
                 });
             }
         } else {
+            MyLog.d("lrucache reuse");
             imageView.setBitmap(bitmap[0]);
         }
     }

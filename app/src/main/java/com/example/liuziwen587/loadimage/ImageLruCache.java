@@ -1,6 +1,5 @@
 package com.example.liuziwen587.loadimage;
 
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.LruCache;
 
@@ -25,8 +24,9 @@ public class ImageLruCache {
     }
 
     private ImageLruCache(){
-        int maxSize = (int) (Runtime.getRuntime().maxMemory()/8);
-        int cacheSize = maxSize/8;
+        int maxSize = (int) (Runtime.getRuntime().maxMemory());
+        MyLog.d("lrucache maxMemory = " + maxSize/1024/1024/8);
+        int cacheSize = maxSize/4;
         cache = new LruCache<String, Bitmap>(cacheSize){
             @Override
             protected int sizeOf(String key, Bitmap value){

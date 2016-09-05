@@ -7,7 +7,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
+import android.widget.GridView;
 
+import java.io.File;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -15,7 +17,8 @@ public class MainActivity extends AppCompatActivity {
 
     Handler handler = new Handler();
     Timer timer = null;
-    ProgressImageView piv;
+    private ProgressImageView piv;
+    private GridView gridView;
     int progress = 0;
 
     Runnable runnable = new Runnable(){
@@ -43,12 +46,38 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         context = this;
-        piv = (ProgressImageView) findViewById(R.id.progress);
-        DownUtil.getInstance().getBitmap(ImageUrl.url[2],piv);
+//        StateImageView siv = (StateImageView) findViewById(R.id.progress);
+//        siv.setState(StateImageView.STATE_INIT);
+        gridView = (GridView) findViewById(R.id.gridView);
+        gridView.setAdapter(new GridViewAdapter(this));
+        //DownUtil.getInstance().getBitmap(ImageUrl.url[2],piv);
 
 //        timer = new Timer();
 //        timer.schedule(timerTask, 1000, 100);
 
+    }
+
+
+    public void onDestroy(){
+        super.onDestroy();
+        deleteImageFile(DownloadImage.savePath);
+    }
+
+    public boolean deleteImageFile(String path) {
+        File file = new File(path);
+        if (file.isDirectory()){
+            File[] files = file.listFiles();
+            for (File f : files){
+                if (file.isDirectory()){
+                    deleteImageFile(f.getAbsolutePath());
+                } else {
+                    f.delete();
+                }
+            }
+        } else {
+            file.delete();
+        }
+        return true;
     }
 
     static Context context;
