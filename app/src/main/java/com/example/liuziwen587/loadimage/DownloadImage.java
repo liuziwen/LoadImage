@@ -20,7 +20,7 @@ public class DownloadImage {
     public String LOG = "DownloadImage : ";
 
     public boolean isCancelled = false;
-    public static final String savePath = Environment.getExternalStorageDirectory().getPath()+"DownloadImage";
+    public static final String savePath = Environment.getExternalStorageDirectory().getPath()+"/DownloadImage";
 
     public DownloadImage(){
         File dir = new File(savePath);
@@ -44,14 +44,14 @@ public class DownloadImage {
         MyLog.d(LOG + "url = " + path);
         String imagePath = savePath + "/" + getNameByUrl(path);
         MyLog.d(LOG + "save path = "+savePath);
-        File image = new File(imagePath);
-        if (image.exists()){
-            if (listener != null){
-                listener.handleProgress(100);
-                listener.onFinished(getNameByUrl(path));
-            }
-            return ;
-        }
+//        File image = new File(imagePath);
+//        if (image.exists()){
+//            if (listener != null){
+//                listener.handleProgress(100);
+//                listener.onFinished(getNameByUrl(path));
+//            }
+//            return ;
+//        }
 
         URL url = null;
         try {
@@ -65,13 +65,14 @@ public class DownloadImage {
         try {
             conn = (HttpURLConnection) url.openConnection();
             conn.setConnectTimeout(3000);
-            conn.setRequestMethod("POST");
+            //conn.setRequestMethod("POST");
             conn.connect();
             if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                MyLog.d("ResponseCode() = "+conn.getResponseCode());
                 int length = conn.getContentLength();
                 is = conn.getInputStream();
                 output = new FileOutputStream(imagePath);
-                byte data[] = new byte[4096];
+                byte data[] = new byte[1024];
                 long total = 0;
                 int count = 0;
                 MyLog.d(LOG + "downImage length = "+length);
@@ -81,7 +82,7 @@ public class DownloadImage {
                         if (listener != null){
                             if (length > 0){
                                 int progress = (int) (100 * total / length);
-                                MyLog.d(LOG + "downImage progress = " + progress);
+                                //MyLog.d(LOG + "downImage progress = " + progress);
                                 listener.handleProgress(progress);
                             }
                         }
@@ -90,20 +91,27 @@ public class DownloadImage {
                     } else {
                         if (listener != null)
                             listener.onCancelled();
+                        MainActivity.deleteImageFile(imagePath);
                         return ;
                     }
                 }
                 output.flush();
-                if (listener != null)
+                if (listener != null){
                     listener.onFinished(getNameByUrl(path));
+                }
             } else {
-
+                if (listener != null){
+                    listener.onFailed("");
+                    MainActivity.deleteImageFile(imagePath);
+                }
                 return ;
             }
         } catch (ProtocolException e) {
             e.printStackTrace();
+            MainActivity.deleteImageFile(imagePath);
         } catch (IOException e) {
             e.printStackTrace();
+            MainActivity.deleteImageFile(imagePath);
         } finally {
             try {
                 if (output != null)

@@ -27,9 +27,14 @@ public class BitmapUtil {
         }
         options.inJustDecodeBounds = false;
         bitmap = BitmapFactory.decodeFile(path, options);
-        bitmap = ImageCrop(bitmap);
+        if (bitmap != null){
+            bitmap = ImageCrop(bitmap);
+        } else {
+            MyLog.d(LOG+ "bitmap = null");
+        }
 
-        MyLog.d(LOG + path + " decode bitmap after length = " + bitmap.getWidth());
+
+        //MyLog.d(LOG + path + " decode bitmap after length = " + bitmap.getWidth());
 
         return bitmap;
     }

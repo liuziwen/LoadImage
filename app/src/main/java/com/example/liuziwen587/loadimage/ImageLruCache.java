@@ -45,4 +45,8 @@ public class ImageLruCache {
         }
     }
 
+    public void clear(){
+        cache.evictAll();
+    }
+
 }

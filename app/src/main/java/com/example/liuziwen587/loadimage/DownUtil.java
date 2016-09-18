@@ -1,10 +1,12 @@
 package com.example.liuziwen587.loadimage;
 
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Handler;
 import android.os.Looper;
 
 import java.io.File;
+import java.util.Iterator;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -59,7 +61,7 @@ public class DownUtil {
     }
 
     public void execute(final String url, final DownloadImage.LoadingListener listener){
-        pool.execute(new Runnable() {
+        pool.execute(new Thread(url) {
             @Override
             public void run() {
                 new DownloadImage().download(url, listener);
@@ -68,25 +70,35 @@ public class DownUtil {
     }
 
 
-    public void setBitmapForView(final String url, final ProgressImageView imageView, final int width){
+    public void setBitmapForView(final String url, final ProgressImageView imageView, final int width, final int position){
 
         final Bitmap[] bitmap = {null};
         if ((bitmap[0] = ImageLruCache.getInstance().get(DownloadImage.getNameByUrl(url))) == null){
             final File f = new File(DownloadImage.savePath + "/" + DownloadImage.getNameByUrl(url));
             if (f.exists()){
-                imageView.setState(ProgressImageView.STATE_LOADING);
-                bitmap[0] = BitmapUtil.getScaledBitmapFromPath(f.getAbsolutePath(), width);
-                ImageLruCache.getInstance().put(DownloadImage.getNameByUrl(url), bitmap[0]);
-                imageView.setBitmap(bitmap[0]);
+                if (imageView != null && GridViewAdapter.downedSet.contains(url)){
+                    if (!GridViewAdapter.loadSet.contains(url)){
+                        imageView.setState(ProgressImageView.STATE_LOADING);
+                        new LoadFromSDCardThread(url, imageView, width).start();
+                    }
+                }
+
             } else {
+                if (GridViewAdapter.threadSet.contains(position)){
+                    return;
+                }
+                //if (imageView != null) imageView.setState(ProgressImageView.STATE_DOWNING);
                 execute(url, new DownloadImage.LoadingListener() {
                     @Override
                     public void handleProgress(final int progress) {
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                if (imageView.getTag().equals(url)){
+                                ProgressImageView imageView = GridViewAdapter.weakHashMap.get(position);
+                                if (imageView != null && imageView.getTag().equals(url)){
                                     imageView.setProgress(progress);
+                                } else {
+                                    MyLog.d("progress null");
                                 }
                             }
                         });
@@ -98,11 +110,13 @@ public class DownUtil {
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                imageView.setState(ProgressImageView.STATE_LOADING);
-                                bitmap[0] = BitmapUtil.getScaledBitmapFromPath(f.getAbsolutePath(), width);
-                                ImageLruCache.getInstance().put(DownloadImage.getNameByUrl(url), bitmap[0]);
-                                if (imageView.getTag().equals(url)){
-                                    imageView.setBitmap(bitmap[0]);
+                                //GridViewAdapter.threadSet.remove(position);
+                                GridViewAdapter.downedSet.add(url);
+                                if (imageView != null){
+                                    if (!GridViewAdapter.loadSet.contains(url)){
+                                        imageView.setState(ProgressImageView.STATE_LOADING);
+                                        new LoadFromSDCardThread(url, imageView, width).start();
+                                    }
                                 }
                             }
                         });
@@ -111,18 +125,66 @@ public class DownUtil {
 
                     @Override
                     public void onCancelled() {
-
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (imageView != null){
+                                    imageView.setState(ProgressImageView.STATE_CANCELL);
+                                }
+                            }
+                        });
                     }
 
                     @Override
                     public void onFailed(String errorMsg) {
-
+                        handler.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (imageView != null){
+                                    imageView.setState(ProgressImageView.STATE_ERROR);
+                                }
+                            }
+                        });
                     }
                 });
+                GridViewAdapter.threadSet.add(position);
             }
         } else {
             MyLog.d("lrucache reuse");
-            imageView.setBitmap(bitmap[0]);
+            if (imageView != null){
+                imageView.setBitmap(bitmap[0]);
+            }
+        }
+    }
+
+    public class LoadFromSDCardThread extends Thread{
+        String url;
+        ProgressImageView iv;
+        int width;
+        public LoadFromSDCardThread(String url, ProgressImageView iv, int width){
+            this.iv = iv;
+            this.url = url;
+            this.width = width;
+            setName(url);
+            GridViewAdapter.loadSet.add(url);
+        }
+        @Override
+        public void run() {
+            final Bitmap bitmap = BitmapUtil.getScaledBitmapFromPath(DownloadImage.savePath + "/" + DownloadImage.getNameByUrl(url), width);
+            ImageLruCache.getInstance().put(DownloadImage.getNameByUrl(url), bitmap);
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (iv!=null && iv.getTag().equals(url)){
+                        if (bitmap != null) {
+                            iv.setBitmap(bitmap);
+                        } else {
+                            iv.setBitmap(BitmapFactory.decodeResource(iv.getResources(), R.mipmap.ic_launcher));
+                        }
+                    }
+                    GridViewAdapter.loadSet.remove(url);
+                }
+            });
         }
     }
 

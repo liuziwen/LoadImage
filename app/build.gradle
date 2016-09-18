@@ -24,4 +24,5 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:22.1.1'
     compile files('lib/json-lib-2.2.2-jdk15.jar')
+    compile'com.android.support:recyclerview-v7:22.1.1'
 }
