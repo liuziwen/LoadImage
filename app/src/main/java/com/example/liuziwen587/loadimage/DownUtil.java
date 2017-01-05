@@ -45,10 +45,10 @@ public class DownUtil {
             TimeUnit.SECONDS, sPoolWorkQueue, sThreadFactory);
 
 
-    public static DownUtil getInstance(){
-        if (instance == null){
-            synchronized(DownUtil.class){
-                if (instance == null){
+    public static DownUtil getInstance() {
+        if (instance == null) {
+            synchronized (DownUtil.class) {
+                if (instance == null) {
                     instance = new DownUtil();
                 }
             }
@@ -56,11 +56,11 @@ public class DownUtil {
         return instance;
     }
 
-    private DownUtil(){
+    private DownUtil() {
 
     }
 
-    public void execute(final String url, final DownloadImage.LoadingListener listener){
+    public void execute(final String url, final DownloadImage.LoadingListener listener) {
         pool.execute(new Thread(url) {
             @Override
             public void run() {
@@ -70,24 +70,24 @@ public class DownUtil {
     }
 
 
-    public void setBitmapForView(final String url, final ProgressImageView imageView, final int width, final int position){
-
+    public void setBitmapForView(final String url, final ProgressImageView imageView, final int width, final int position) {
         final Bitmap[] bitmap = {null};
-        if ((bitmap[0] = ImageLruCache.getInstance().get(DownloadImage.getNameByUrl(url))) == null){
+        if ((bitmap[0] = ImageLruCache.getInstance().get(DownloadImage.getNameByUrl(url))) == null) {
             final File f = new File(DownloadImage.savePath + "/" + DownloadImage.getNameByUrl(url));
-            if (f.exists()){
-                if (imageView != null && GridViewAdapter.downedSet.contains(url)){
-                    if (!GridViewAdapter.loadSet.contains(url)){
+            if (f.exists()) {
+                if (imageView != null && !GridViewAdapter.threadSet.contains(position)) {
+                    if (!GridViewAdapter.loadSet.contains(url)) {
                         imageView.setState(ProgressImageView.STATE_LOADING);
+                        GridViewAdapter.loadSet.add(url);
                         new LoadFromSDCardThread(url, imageView, width).start();
                     }
                 }
 
             } else {
-                if (GridViewAdapter.threadSet.contains(position)){
+                if (GridViewAdapter.threadSet.contains(position)) {
                     return;
                 }
-                //if (imageView != null) imageView.setState(ProgressImageView.STATE_DOWNING);
+                GridViewAdapter.threadSet.add(position);
                 execute(url, new DownloadImage.LoadingListener() {
                     @Override
                     public void handleProgress(final int progress) {
@@ -95,10 +95,10 @@ public class DownUtil {
                             @Override
                             public void run() {
                                 ProgressImageView imageView = GridViewAdapter.weakHashMap.get(position);
-                                if (imageView != null && imageView.getTag().equals(url)){
+                                if (imageView != null && imageView.getTag().equals(url)) {
                                     imageView.setProgress(progress);
                                 } else {
-                                    MyLog.d("progress null");
+                                    //MyLog.d("progress null");
                                 }
                             }
                         });
@@ -110,13 +110,13 @@ public class DownUtil {
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                //GridViewAdapter.threadSet.remove(position);
+                                GridViewAdapter.threadSet.remove(position);
                                 GridViewAdapter.downedSet.add(url);
-                                if (imageView != null){
-                                    if (!GridViewAdapter.loadSet.contains(url)){
-                                        imageView.setState(ProgressImageView.STATE_LOADING);
-                                        new LoadFromSDCardThread(url, imageView, width).start();
-                                    }
+                                ProgressImageView imageView = GridViewAdapter.weakHashMap.get(position);
+                                if (imageView != null && imageView.getTag().equals(url)) {
+                                    imageView.setState(ProgressImageView.STATE_LOADING);
+                                    GridViewAdapter.loadSet.add(url);
+                                    new LoadFromSDCardThread(url, imageView, width).start();
                                 }
                             }
                         });
@@ -128,7 +128,8 @@ public class DownUtil {
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                if (imageView != null){
+                                ProgressImageView imageView = GridViewAdapter.weakHashMap.get(position);
+                                if (imageView != null && imageView.getTag().equals(url)) {
                                     imageView.setState(ProgressImageView.STATE_CANCELL);
                                 }
                             }
@@ -140,34 +141,34 @@ public class DownUtil {
                         handler.post(new Runnable() {
                             @Override
                             public void run() {
-                                if (imageView != null){
+                                ProgressImageView imageView = GridViewAdapter.weakHashMap.get(position);
+                                if (imageView != null && imageView.getTag().equals(url)) {
                                     imageView.setState(ProgressImageView.STATE_ERROR);
                                 }
                             }
                         });
                     }
                 });
-                GridViewAdapter.threadSet.add(position);
             }
         } else {
-            MyLog.d("lrucache reuse");
-            if (imageView != null){
+            if (imageView != null) {
                 imageView.setBitmap(bitmap[0]);
             }
         }
     }
 
-    public class LoadFromSDCardThread extends Thread{
+    public class LoadFromSDCardThread extends Thread {
         String url;
         ProgressImageView iv;
         int width;
-        public LoadFromSDCardThread(String url, ProgressImageView iv, int width){
+
+        public LoadFromSDCardThread(String url, ProgressImageView iv, int width) {
             this.iv = iv;
             this.url = url;
             this.width = width;
             setName(url);
-            GridViewAdapter.loadSet.add(url);
         }
+
         @Override
         public void run() {
             final Bitmap bitmap = BitmapUtil.getScaledBitmapFromPath(DownloadImage.savePath + "/" + DownloadImage.getNameByUrl(url), width);
@@ -175,7 +176,7 @@ public class DownUtil {
             handler.post(new Runnable() {
                 @Override
                 public void run() {
-                    if (iv!=null && iv.getTag().equals(url)){
+                    if (iv != null && iv.getTag().equals(url)) {
                         if (bitmap != null) {
                             iv.setBitmap(bitmap);
                         } else {
@@ -187,7 +188,6 @@ public class DownUtil {
             });
         }
     }
-
 
 
 }

@@ -35,6 +35,8 @@ public class ProgressImageView extends ImageView {
     public Paint p2 = null;
     public int padding = 10;
     RectF rectF = new RectF();
+    Rect bound = new Rect();
+
 
     int width = 0;
     int height = 0;
@@ -98,8 +100,6 @@ public class ProgressImageView extends ImageView {
         }
 
         rectF.set(padding, padding, getWidth() - padding, getHeight() - padding);
-        r1 = getHeight() / 2;
-        length = getWidth() / fps;
         width = getWidth();
         height = getHeight();
     }
@@ -138,16 +138,11 @@ public class ProgressImageView extends ImageView {
 
     }
 
-    int r1 = getHeight() / 2;
-    int r2 = 0;
-    int length = getWidth() / fps;
-    boolean b = true;//外缩内增
     public void drawLoadingAnim(Canvas canvas) {
         String toast = "加载中";
         canvas.drawColor(Color.WHITE);
         p1.setTextSize(height/5);
         p1.setColor(Color.BLACK);
-        Rect bound = new Rect();
         p1.getTextBounds(toast, 0, toast.length(), bound);
         p1.setTextAlign(Paint.Align.LEFT);
         canvas.drawColor(Color.WHITE);
@@ -163,7 +158,6 @@ public class ProgressImageView extends ImageView {
         String toast = "已取消";
         p1.setTextSize(height/5);
         p1.setColor(Color.BLACK);
-        Rect bound = new Rect();
         p1.getTextBounds(toast, 0, toast.length(), bound);
         p1.setTextAlign(Paint.Align.LEFT);
         canvas.drawColor(Color.WHITE);

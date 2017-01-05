@@ -27,32 +27,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         context = this;
-        MyLog.d("/data/data/ = "+ getFilesDir().getPath());
         gridView = (GridView) findViewById(R.id.gridView);
         gridView.setAdapter(new GridViewAdapter(this));
-        //initRecycleView();
     }
-
-//    public void initRecycleView(){
-//        recyclerView = (RecyclerView) findViewById(R.id.recycleview);
-//        recyclerView.setHasFixedSize(true);
-//        GridLayoutManager gridLayoutManager = new GridLayoutManager(this, 3);
-//        recyclerView.setLayoutManager(gridLayoutManager);
-//        recyclerView.setAdapter(new RecycleViewAdapter());
-//    }
 
     public void onResume(){
         super.onResume();
-        Iterator<Integer> iterator = GridViewAdapter.threadSet.iterator();
-        while(iterator.hasNext()){
-            System.out.print(iterator.next()+" ");
-        }
-        deleteImageFile(DownloadImage.savePath);
-        ImageLruCache.getInstance().clear();
+//        deleteImageFile(DownloadImage.savePath);
+//        ImageLruCache.getInstance().clear();
+//        GridViewAdapter.downedSet.clear();
+//        GridViewAdapter.threadSet.clear();
     }
     public void onDestroy(){
         super.onDestroy();
-        deleteImageFile(DownloadImage.savePath);
+//        deleteImageFile(DownloadImage.savePath);
     }
 
     public static boolean deleteImageFile(String path) {

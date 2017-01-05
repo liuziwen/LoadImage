@@ -1,8 +1,13 @@
 package com.example.liuziwen587.loadimage;
 
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.BitmapDrawable;
+import android.media.Image;
 import android.os.AsyncTask;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,16 +35,15 @@ public class GridViewAdapter extends BaseAdapter{
         inflater = LayoutInflater.from(context);
     }
 
-    //记录已经添加的线程
+    //记录已经添加的从网上下载图片的线程, 避免重复下载
     public static Set<Integer> threadSet = new HashSet<Integer>();
+    //记录下载好的图片,下载完后再从sd卡上加载
     public static Set<String> downedSet = new HashSet<>();
+    //记录正在从sd卡加载图片的线程
     public static Set<String> loadSet = new HashSet<>();
-    public static Map<Integer, Integer> progressSet = new HashMap<>();
+    //记录position位置的imageView
     public static WeakHashMap<Integer, ProgressImageView> weakHashMap = new WeakHashMap<>();
 
-    public static void setProgress(ProgressImageView iv, int position, int progress){
-        iv.setProgress(progress);
-    }
 
     @Override
     public int getCount() {
@@ -57,28 +61,58 @@ public class GridViewAdapter extends BaseAdapter{
     }
 
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public View getView(final int position, View convertView, ViewGroup parent) {
         ViewHolder viewHolder = null;
         if (convertView == null){
-            MyLog.d("gridview not reuse position = "+position);
             convertView = inflater.inflate(R.layout.gridview_image_cell, parent, false);
             viewHolder = new ViewHolder();
             viewHolder.imageView = (ProgressImageView) convertView.findViewById(R.id.image);
             convertView.setTag(viewHolder);
         } else {
-            MyLog.d("gridview reuse position = "+position);
             viewHolder = (ViewHolder) convertView.getTag();
         }
         weakHashMap.put(position, viewHolder.imageView);
         if (threadSet.contains(position)){
             viewHolder.imageView.setState(ProgressImageView.STATE_DOWNING);
-            //if ()
         } else {
             viewHolder.imageView.setState(ProgressImageView.STATE_INIT);
         }
         String imageUrl = ImageUrl.url[position];
         viewHolder.imageView.setTag(imageUrl);
         DownUtil.getInstance().setBitmapForView(imageUrl, viewHolder.imageView, 200, position);
+
+        convertView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AlertDialog.Builder d = new AlertDialog.Builder(context);
+                d.setTitle("重新加载");
+                Bitmap bitmap = ImageLruCache.getInstance().get(ImageUrl.url[position]);
+                if (bitmap == null){
+                    d.setIcon(new BitmapDrawable(bitmap));
+                } else {
+                    d.setIcon(R.mipmap.ic_launcher);
+                }
+
+                String msg = "图片下载线程是否已添加:"+threadSet.contains(position)+"\n"+
+                        " 图片是否已下到sd卡:"+downedSet.contains(ImageUrl.url[position]);
+                d.setMessage(msg);
+//                d.setPositiveButton("重新加载", new DialogInterface.OnClickListener() {
+//                    @Override
+//                    public void onClick(DialogInterface dialog, int which) {
+//
+//                    }
+//                });
+                d.setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                });
+
+                d.show();
+
+            }
+        });
         return convertView;
     }
 
